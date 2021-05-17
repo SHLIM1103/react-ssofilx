@@ -1,19 +1,50 @@
 import React from "react"
 import DetailPresenter from "./DetailPresenter"
+import { moviesApi, tvApi } from "api"
 
 export default class extends React.Component {
-  state = {
-    nowPlaying: null,
-    upcoming: null,
-    popular: null,
-    error: null,
-    loading: true,
+  constructor(props) {
+    super(props)
+    const {
+      location: { pathname },
+    } = props
+    this.state = {
+      result: null,
+      error: null,
+      loading: true,
+      isMovie: pathname.includes("/movie/"),
+    }
+  }
+
+  async componentDidMount() {
+    const {
+      match: {
+        params: { id },
+      },
+      history: { push },
+    } = this.props
+    const { isMovie } = this.state
+    const parsedId = parseInt(id)
+    if (isNaN(parsedId)) {
+      return push("/")
+    }
+    let result = null
+    try {
+      if (isMovie) {
+        ({ data: result } = await moviesApi.movieDetail(parsedId))
+      } else {
+        ({ data: result } = await tvApi.showDetail(parsedId))
+      }
+      console.log(result)
+    } catch {
+      this.setState({ error: "Can't find anything." })
+    } finally {
+      this.setState({ loading: false })
+    }
   }
 
   render() {
-    const { nowPlaying, upcoming, popular, error, loading } = this.state
-    return (
-      <DetailPresenter nowPlaying={nowPlaying} upcoming={upcoming} popular={popular} error={error} loading={loading} />
-    )
+    const { error, loading, result } = this.state
+    return <DetailPresenter error={error} loading={loading} result={result} />
   }
 }
